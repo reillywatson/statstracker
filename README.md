@@ -1,6 +1,6 @@
-# GitHub PR Tracker
+# Stats Tracker
 
-GitHub PR Tracker is a command-line application that allows users to pull pull requests (PRs) from a specified GitHub repository and measure the time taken for those PRs to be reviewed by human reviewers. It can exclude PRs opened by, or reviewed by, certain users (intended to exclude bots that review or open PRs).
+Stats Tracker is a command-line application that allows users to pull pull requests (PRs) from a specified GitHub repository and measure the time taken for those PRs to be reviewed by human reviewers. It can exclude PRs opened by, or reviewed by, certain users (intended to exclude bots that review or open PRs).
 
 ## Installation
 
@@ -8,8 +8,8 @@ GitHub PR Tracker is a command-line application that allows users to pull pull r
 2. Clone the repository:
 
    ```bash
-   git clone https://github.com/reillywatson/github-pr-tracker.git
-   cd github-pr-tracker
+   git clone https://github.com/reillywatson/statstracker.git
+   cd statstracker
    ```
 
 ## Usage

@@ -1,4 +1,4 @@
-module github.com/reillywatson/github-pr-tracker
+module github.com/reillywatson/statstracker
 
 go 1.23.0
 

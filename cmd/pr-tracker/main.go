@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-github/v39/github"
-	ghclient "github.com/reillywatson/github-pr-tracker/internal/github"
+	ghclient "github.com/reillywatson/statstracker/internal/github"
 )
 
 // Result represents the analysis results for a single PR
