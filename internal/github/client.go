@@ -25,7 +25,7 @@ func NewGitHubClient(token string) *GitHubClient {
 	}
 }
 
-func (c *GitHubClient) FetchPullRequests(owner, repo string, startDate time.Time) ([]*github.PullRequest, error) {
+func (c *GitHubClient) FetchPullRequests(owner, repo string, startDate, endDate time.Time) ([]*github.PullRequest, error) {
 	ctx := context.Background()
 	var allPRs []*github.PullRequest
 	opts := &github.PullRequestListOptions{
@@ -40,7 +40,7 @@ func (c *GitHubClient) FetchPullRequests(owner, repo string, startDate time.Time
 		}
 
 		for _, pr := range prs {
-			if pr.GetCreatedAt().After(startDate) || pr.GetCreatedAt().Equal(startDate) {
+			if !pr.GetCreatedAt().Before(startDate) && !pr.GetCreatedAt().After(endDate) {
 				allPRs = append(allPRs, pr)
 			}
 		}
