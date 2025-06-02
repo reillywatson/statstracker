@@ -29,22 +29,38 @@ Replace `<owner/repo>` with the GitHub repository you want to analyze, and GITHU
 
 ### Deploy Tracker
 
-Measures deployment-to-log latency by tracking the time between when a commit is made and when that commit shows up in Google Cloud Logger.
+Measures deployment latency by tracking the time between when a commit is made and when that commit finishes deploying.
 
 ```bash
-GITHUB_TOKEN=<mytoken> go run cmd/deploy-tracker/main.go -project <gcp-project-id>
+GITHUB_TOKEN=<mytoken> go run cmd/deploy-tracker/main.go \
+  -project <gcp-project-id> \
+  -github-org <github-org> \
+  -tags-repo <tags-repo-name> \
+  -services-repo <services-repo-name>
 ```
 
 **Required:**
 - `GITHUB_TOKEN`: GitHub personal access token (environment variable)
-- `-project`: Google Cloud project ID (command line flag)
+- `-project`: Google Cloud project ID
+- `-github-org`: GitHub organization name
+- `-tags-repo`: Repository containing deployment tags
+- `-services-repo`: Repository containing the actual service code
 
 **Optional flags:**
 - `-region`: Google Cloud region (defaults to us-east4)
 - `-since`: Start date in YYYY-MM-DD format (defaults to 30 days ago)
 - `-until`: End date in YYYY-MM-DD format (defaults to now)
 
+**Example:**
+```bash
+GITHUB_TOKEN=<mytoken> go run cmd/deploy-tracker/main.go \
+  -project my-gcp-project \
+  -github-org someorg \
+  -tags-repo some-tags-repo \
+  -services-repo some-code-repo
+```
+
 **Prerequisites for Deploy Tracker:**
 - Google Cloud authentication configured (Application Default Credentials)
-- Access to Google Cloud Deploy and Google Cloud Logging APIs
-- Access to the EverlongProject/testenv-backend-tags and EverlongProject/services GitHub repositories
+- Access to Google Cloud Deploy API
+- Access to the specified GitHub repositories
