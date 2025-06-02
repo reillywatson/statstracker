@@ -9,7 +9,7 @@ import (
 )
 
 // ProcessPullRequests analyzes the pull requests and returns results
-func ProcessPullRequests(client *GitHubClient, prs []*github.PullRequest, owner, repo string, denylist []string) []PullRequestMetric {
+func ProcessPullRequests(client GitHubClientInterface, prs []*github.PullRequest, owner, repo string, denylist []string) []PullRequestMetric {
 	var results []PullRequestMetric
 
 	// Process each PR

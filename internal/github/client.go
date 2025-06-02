@@ -9,6 +9,12 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// GitHubClientInterface defines the interface for GitHub operations
+type GitHubClientInterface interface {
+	FetchPullRequests(owner, repo string, startDate, endDate time.Time) ([]*github.PullRequest, error)
+	FetchPullRequestReviews(owner, repo string, prNumber int) ([]*github.PullRequestReview, error)
+}
+
 type GitHubClient struct {
 	client *github.Client
 }
