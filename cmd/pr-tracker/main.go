@@ -9,23 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v39/github"
-	ghclient "github.com/reillywatson/statstracker/internal/github"
+	"github.com/reillywatson/statstracker/internal/github"
 )
-
-// Result represents the analysis results for a single PR
-type Result struct {
-	PRTitle           string
-	PRNumber          int
-	Author            string
-	TimeToFirstReview time.Duration
-	FirstReviewer     string
-	FirstReviewState  string
-	TimeToApproval    time.Duration
-	Approver          string
-	HasReview         bool          // Flag to indicate if PR has at least one review
-	TimeSinceCreation time.Duration // How long the PR has been open without review
-}
 
 func main() {
 	// Define command line flags
@@ -83,7 +68,7 @@ func main() {
 	}
 
 	// Create a GitHub client
-	client := ghclient.NewGitHubClient(token)
+	client := github.NewGitHubClient(token)
 
 	// Fetch pull requests with start date
 	fmt.Printf("Fetching PRs for %s/%s from %s to %s...\n", owner, repo, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
@@ -95,115 +80,14 @@ func main() {
 	fmt.Printf("Found %d pull requests for %s/%s\n", len(prs), owner, repo)
 
 	// Process pull requests to gather results
-	results := processPullRequests(client, prs, owner, repo, denylist)
+	results := github.ProcessPullRequests(client, prs, owner, repo, denylist)
 
 	// Print the results
 	printResults(results)
 }
 
-// processPullRequests analyzes the pull requests and returns results
-func processPullRequests(client *ghclient.GitHubClient, prs []*github.PullRequest, owner, repo string, denylist []string) []Result {
-	var results []Result
-
-	// Process each PR
-	for _, pr := range prs {
-		// Skip draft PRs
-		if pr.GetDraft() {
-			continue
-		}
-
-		// Skip closed PRs that weren't merged
-		if pr.GetState() == "closed" && pr.GetMergedAt().IsZero() {
-			continue
-		}
-
-		prAuthorLogin := pr.GetUser().GetLogin()
-		if slices.Contains(denylist, prAuthorLogin) {
-			continue
-		}
-
-		reviews, err := client.FetchPullRequestReviews(owner, repo, pr.GetNumber())
-		if err != nil {
-			log.Printf("Error fetching reviews for PR #%d: %v", pr.GetNumber(), err)
-			continue
-		}
-
-		// Track first review and first approval separately
-		var firstReviewTime *time.Time
-		var firstReviewer string
-		var firstReviewState string
-
-		var firstApprovalTime *time.Time
-		var approver string
-
-		var validReviewFound bool
-
-		for _, review := range reviews {
-			submittedAt := review.GetSubmittedAt()
-			reviewerUser := review.GetUser().GetLogin()
-			reviewState := review.GetState()
-
-			// Skip empty, pending reviews, or self-reviews
-			if reviewState == "PENDING" || reviewerUser == prAuthorLogin {
-				continue
-			}
-			if slices.Contains(denylist, reviewerUser) {
-				continue
-			}
-
-			validReviewFound = true
-
-			// Check for first review (of any kind)
-			if firstReviewTime == nil || submittedAt.Before(*firstReviewTime) {
-				firstReviewTime = &submittedAt
-				firstReviewer = reviewerUser
-				firstReviewState = reviewState
-			}
-
-			// Check specifically for approvals
-			if reviewState == "APPROVED" {
-				if firstApprovalTime == nil || submittedAt.Before(*firstApprovalTime) {
-					firstApprovalTime = &submittedAt
-					approver = reviewerUser
-				}
-			}
-		}
-
-		// Calculate time to first review
-		var timeToFirstReview time.Duration
-		if firstReviewTime != nil {
-			timeToFirstReview = firstReviewTime.Sub(pr.GetCreatedAt())
-		}
-
-		// Calculate time to first approval
-		var timeToApproval time.Duration
-		if firstApprovalTime != nil {
-			timeToApproval = firstApprovalTime.Sub(pr.GetCreatedAt())
-		}
-
-		// Calculate time since PR was created (for PRs without reviews)
-		timeSinceCreation := time.Since(pr.GetCreatedAt())
-
-		// Always add the PR to results, but mark whether it has reviews
-		results = append(results, Result{
-			PRTitle:           pr.GetTitle(),
-			PRNumber:          pr.GetNumber(),
-			Author:            prAuthorLogin,
-			TimeToFirstReview: timeToFirstReview,
-			FirstReviewer:     firstReviewer,
-			FirstReviewState:  firstReviewState,
-			TimeToApproval:    timeToApproval,
-			Approver:          approver,
-			HasReview:         validReviewFound,
-			TimeSinceCreation: timeSinceCreation,
-		})
-	}
-
-	return results
-}
-
 // printResults outputs the analysis results in a readable format
-func printResults(results []Result) {
+func printResults(results []github.PullRequestMetric) {
 	// Output results
 	if len(results) == 0 {
 		fmt.Println("No pull requests found")
@@ -280,7 +164,7 @@ func calculateMedian(durations []time.Duration) time.Duration {
 }
 
 // printSummaryStatistics calculates and displays mean and median review times
-func printSummaryStatistics(results []Result) {
+func printSummaryStatistics(results []github.PullRequestMetric) {
 	// Collect all the time durations for each category
 	var firstReviewTimes []time.Duration
 	var approvalTimes []time.Duration

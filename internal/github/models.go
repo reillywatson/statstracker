@@ -20,3 +20,17 @@ type Review struct {
 	Status string    `json:"status"`
 	Date   time.Time `json:"date"`
 }
+
+// PullRequestMetric represents the analysis results for a single PR
+type PullRequestMetric struct {
+	PRTitle           string
+	PRNumber          int
+	Author            string
+	TimeToFirstReview time.Duration
+	FirstReviewer     string
+	FirstReviewState  string
+	TimeToApproval    time.Duration
+	Approver          string
+	HasReview         bool          // Flag to indicate if PR has at least one review
+	TimeSinceCreation time.Duration // How long the PR has been open without review
+}
