@@ -1,9 +1,10 @@
 # Stats Tracker
 
-Stats Tracker is a command-line application that provides two main tools:
+Stats Tracker is a command-line application that provides three main tools:
 
 1. **PR Tracker**: Analyzes GitHub pull requests and measures review times
 2. **Deploy Tracker**: Measures deployment-to-log latency by tracking commit-to-log times for Google Cloud Deploy releases
+3. **Flaky Tests**: Fetches and analyzes flaky tests from CircleCI for a given project
 
 ## Installation
 
@@ -64,3 +65,32 @@ GITHUB_TOKEN=<mytoken> go run cmd/deploy-tracker/main.go \
 - Google Cloud authentication configured (Application Default Credentials)
 - Access to Google Cloud Deploy API
 - Access to the specified GitHub repositories
+
+### Flaky Tests
+
+Fetches and analyzes flaky tests from CircleCI for a specific GitHub project. Displays the tests ordered by flakiness frequency with summary statistics.
+
+```bash
+CIRCLECI_TOKEN=<mytoken> go run cmd/flaky-tests/main.go <org> <repo>
+```
+
+**Required:**
+- `CIRCLECI_TOKEN`: CircleCI API token (environment variable)
+- `<org>`: GitHub organization name
+- `<repo>`: GitHub repository name
+
+**Example:**
+```bash
+CIRCLECI_TOKEN=<mytoken> go run cmd/flaky-tests/main.go my-org my-repo
+```
+
+The command will output:
+- A list of flaky tests sorted by frequency (most flaky first)
+- Test names and class names where available
+- Number of times each test has been flaky
+- When each test was last observed as flaky (if available)
+- Summary statistics including total flaky tests, total flakiness events, and averages
+
+**Prerequisites for Flaky Tests:**
+- CircleCI API token with project access
+- The project must be configured in CircleCI

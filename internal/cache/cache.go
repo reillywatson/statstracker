@@ -79,6 +79,10 @@ func (b *CacheKeyBuilder) ReleasesListKey(projectID, region, pipeline string, st
 	return b.buildKey("releases_list", projectID, region, pipeline, start, end)
 }
 
+func (b *CacheKeyBuilder) FlakyTestsKey(org, repo string) string {
+	return b.buildKey("flaky-tests", org, repo)
+}
+
 func (b *CacheKeyBuilder) buildKey(parts ...interface{}) string {
 	key := b.prefix
 	for _, part := range parts {
