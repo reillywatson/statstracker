@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/reillywatson/statstracker/internal/cache"
 	"github.com/reillywatson/statstracker/internal/github"
 )
 
@@ -67,8 +68,16 @@ func main() {
 		log.Fatal("GITHUB_TOKEN environment variable not set")
 	}
 
-	// Create a GitHub client
-	client := github.NewGitHubClient(token)
+	// Create cache
+	cacheImpl, err := cache.NewDefaultCache()
+	if err != nil {
+		log.Fatalf("Error creating cache: %v", err)
+	}
+	defer cacheImpl.Close()
+
+	// Create a cached GitHub client
+	client := github.NewCachedGitHubClient(token, cacheImpl)
+	defer client.Close()
 
 	// Fetch pull requests with start date
 	fmt.Printf("Fetching PRs for %s/%s from %s to %s...\n", owner, repo, startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))

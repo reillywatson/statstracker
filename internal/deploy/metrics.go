@@ -4,12 +4,20 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/deploy/apiv1/deploypb"
 )
 
+// DeployClientInterface defines the interface for deploy operations
+type DeployClientInterface interface {
+	FetchTestEnvironmentReleases(startDate, endDate time.Time) ([]*deploypb.Release, error)
+	ExtractCommitSHAFromRelease(release *deploypb.Release) (string, string, time.Time, error)
+	GetReleaseFinishTime(release *deploypb.Release) (time.Time, error)
+}
+
 // ProcessDeployments analyzes releases and calculates commit-to-deploy latency
-func ProcessDeployments(client *DeployClient, releases []*deploypb.Release) []DeploymentMetric {
+func ProcessDeployments(client DeployClientInterface, releases []*deploypb.Release) []DeploymentMetric {
 	var results []DeploymentMetric
 
 	for _, release := range releases {

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/reillywatson/statstracker/internal/cache"
 	"github.com/reillywatson/statstracker/internal/deploy"
 )
 
@@ -64,8 +65,15 @@ func main() {
 		log.Fatal("GITHUB_TOKEN environment variable not set")
 	}
 
-	// Create a Deploy client
-	client, err := deploy.NewDeployClient(*projectID, *region, githubToken, *githubOrg, *tagsRepo, *servicesRepo)
+	// Create cache
+	cacheImpl, err := cache.NewDefaultCache()
+	if err != nil {
+		log.Fatalf("Error creating cache: %v", err)
+	}
+	defer cacheImpl.Close()
+
+	// Create a cached Deploy client
+	client, err := deploy.NewCachedDeployClient(*projectID, *region, githubToken, *githubOrg, *tagsRepo, *servicesRepo, cacheImpl)
 	if err != nil {
 		log.Fatalf("Error creating deploy client: %v", err)
 	}
