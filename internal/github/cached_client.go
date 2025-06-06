@@ -95,6 +95,55 @@ func (c *CachedGitHubClient) FetchPullRequestReviews(owner, repo string, prNumbe
 	return reviews, nil
 }
 
+// FetchCommits fetches commits with caching
+func (c *CachedGitHubClient) FetchCommits(owner, repo string, since, until time.Time) ([]*github.RepositoryCommit, error) {
+	// Try to get from cache first
+	cacheKey := c.kb.CommitsListKey(owner, repo, since, until)
+	var cachedCommits []*github.RepositoryCommit
+	if err := c.cache.Get(cacheKey, &cachedCommits); err == nil {
+		return cachedCommits, nil
+	} else if err != cache.ErrCacheMiss {
+		log.Printf("Cache error for commits list: %v", err)
+	}
+
+	// Cache miss, fetch from API
+	commits, err := c.client.FetchCommits(owner, repo, since, until)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result - use longer TTL for historical data, shorter for recent data
+	ttl := c.calculateCommitListTTL(until)
+	if err := c.cache.Set(cacheKey, commits, ttl); err != nil {
+		log.Printf("Failed to cache commits list: %v", err)
+	}
+
+	return commits, nil
+}
+
+// FetchCommit fetches a single commit with caching
+func (c *CachedGitHubClient) FetchCommit(owner, repo, sha string) (*github.RepositoryCommit, error) {
+	cacheKey := c.kb.CommitKey(owner, repo, sha)
+
+	var commit *github.RepositoryCommit
+	if err := c.cache.Get(cacheKey, &commit); err == nil {
+		return commit, nil
+	}
+
+	// Cache miss, fetch from API
+	commit, err := c.client.FetchCommit(owner, repo, sha)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache commits for 24 hours since they don't change
+	if err := c.cache.Set(cacheKey, commit, 24*time.Hour); err != nil {
+		log.Printf("Failed to cache commit %s: %v", sha, err)
+	}
+
+	return commit, nil
+}
+
 // isPRCacheable determines if a PR is in a state that can be cached long-term
 func (c *CachedGitHubClient) isPRCacheable(pr *github.PullRequest) bool {
 	if pr == nil {
@@ -107,6 +156,19 @@ func (c *CachedGitHubClient) isPRCacheable(pr *github.PullRequest) bool {
 
 // calculatePRListTTL calculates TTL for PR list cache based on how recent the data is
 func (c *CachedGitHubClient) calculatePRListTTL(endDate time.Time) time.Duration {
+	daysSinceEnd := time.Since(endDate).Hours() / 24
+
+	// Historical data (older than 7 days): cache for 24 hours
+	if daysSinceEnd > 7 {
+		return 24 * time.Hour
+	}
+
+	// Recent data (last 7 days): cache for 1 hour
+	return 1 * time.Hour
+}
+
+// calculateCommitListTTL calculates TTL for commit list cache based on how recent the data is
+func (c *CachedGitHubClient) calculateCommitListTTL(endDate time.Time) time.Duration {
 	daysSinceEnd := time.Since(endDate).Hours() / 24
 
 	// Historical data (older than 7 days): cache for 24 hours

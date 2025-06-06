@@ -21,6 +21,14 @@ type Review struct {
 	Date   time.Time `json:"date"`
 }
 
+// TagCommit represents a commit in the tags repository that references a PR
+type TagCommit struct {
+	SHA     string    // The commit SHA in the tags repo
+	Message string    // The commit message
+	Date    time.Time // When the commit was created
+	Author  string    // The commit author
+}
+
 // PullRequestMetric represents the analysis results for a single PR
 type PullRequestMetric struct {
 	PRTitle           string
@@ -33,4 +41,5 @@ type PullRequestMetric struct {
 	Approver          string
 	HasReview         bool          // Flag to indicate if PR has at least one review
 	TimeSinceCreation time.Duration // How long the PR has been open without review
+	TagCommits        []TagCommit   // All tag commits that reference this PR
 }

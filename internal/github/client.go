@@ -13,6 +13,8 @@ import (
 type GitHubClientInterface interface {
 	FetchPullRequests(owner, repo string, startDate, endDate time.Time) ([]*github.PullRequest, error)
 	FetchPullRequestReviews(owner, repo string, prNumber int) ([]*github.PullRequestReview, error)
+	FetchCommits(owner, repo string, since, until time.Time) ([]*github.RepositoryCommit, error)
+	FetchCommit(owner, repo, sha string) (*github.RepositoryCommit, error)
 }
 
 type GitHubClient struct {
@@ -77,4 +79,43 @@ func (c *GitHubClient) FetchPullRequestReviews(owner, repo string, prNumber int)
 	}
 
 	return reviews, nil
+}
+
+func (c *GitHubClient) FetchCommits(owner, repo string, since, until time.Time) ([]*github.RepositoryCommit, error) {
+	ctx := context.Background()
+	var allCommits []*github.RepositoryCommit
+	opts := &github.CommitsListOptions{
+		Since:       since,
+		Until:       until,
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+
+	for {
+		commits, resp, err := c.client.Repositories.ListCommits(ctx, owner, repo, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch commits: %w", err)
+		}
+
+		allCommits = append(allCommits, commits...)
+
+		// Break if we've processed all pages
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+
+	return allCommits, nil
+}
+
+// FetchCommit fetches a single commit with its diff
+func (c *GitHubClient) FetchCommit(owner, repo, sha string) (*github.RepositoryCommit, error) {
+	ctx := context.Background()
+
+	commit, _, err := c.client.Repositories.GetCommit(ctx, owner, repo, sha, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch commit %s: %w", sha, err)
+	}
+
+	return commit, nil
 }

@@ -18,6 +18,7 @@ func main() {
 	startDateStr := flag.String("since", "", "Start date in YYYY-MM-DD format (defaults to 30 days ago)")
 	endDateStr := flag.String("until", "", "End date in YYYY-MM-DD format (defaults to now)")
 	denyListStr := flag.String("exclude", "", "Comma-separated list of GitHub usernames to ignore")
+	tagsRepoStr := flag.String("tags-repo", "", "Tags repository in owner/repo format for checking tag commits")
 
 	// Parse flags
 	flag.Parse()
@@ -38,6 +39,17 @@ func main() {
 	}
 	owner := parts[0]
 	repo := parts[1]
+
+	// Parse tags repository if provided
+	var tagsOwner, tagsRepo string
+	if *tagsRepoStr != "" {
+		tagsParts := strings.Split(*tagsRepoStr, "/")
+		if len(tagsParts) != 2 {
+			log.Fatal("Invalid tags repository format. Use 'owner/repo'")
+		}
+		tagsOwner = tagsParts[0]
+		tagsRepo = tagsParts[1]
+	}
 
 	denylist := strings.Split(*denyListStr, ",")
 
@@ -89,7 +101,7 @@ func main() {
 	fmt.Printf("Found %d pull requests for %s/%s\n", len(prs), owner, repo)
 
 	// Process pull requests to gather results
-	results := github.ProcessPullRequests(client, prs, owner, repo, denylist)
+	results := github.ProcessPullRequests(client, prs, owner, repo, denylist, tagsOwner, tagsRepo)
 
 	// Print the results
 	printResults(results)
@@ -121,6 +133,14 @@ func printResults(results []github.PullRequestMetric) {
 			} else {
 				fmt.Printf("  Time to Approval: Not yet approved\n")
 			}
+			switch numDeploys := len(result.TagCommits); numDeploys {
+			case 0:
+				// do nothing
+			case 1:
+				fmt.Printf("  Deployed to test env %d time\n", numDeploys)
+			default:
+				fmt.Printf("  Deployed to test env %d times\n", numDeploys)
+			}
 			fmt.Println()
 		}
 	}
@@ -140,6 +160,14 @@ func printResults(results []github.PullRequestMetric) {
 			fmt.Printf("PR #%d: %s\n", result.PRNumber, result.PRTitle)
 			fmt.Printf("Author: %s\n", result.Author)
 			fmt.Printf("  Waiting for: %v\n", result.TimeSinceCreation.Truncate(time.Second))
+			switch numDeploys := len(result.TagCommits); numDeploys {
+			case 0:
+				// do nothing
+			case 1:
+				fmt.Printf("  Deployed to test env %d time\n", numDeploys)
+			default:
+				fmt.Printf("  Deployed to test env %d times\n", numDeploys)
+			}
 			fmt.Println()
 		}
 	}
@@ -248,5 +276,25 @@ func printSummaryStatistics(results []github.PullRequestMetric) {
 		fmt.Printf("  Median wait time: %v\n", medianWaitingTime.Truncate(time.Second))
 	} else {
 		fmt.Println("PRs Awaiting Review: 0")
+	}
+
+	// Tag commit statistics (only if tags repo was specified)
+	totalPRs := len(results)
+	tagCommitCount := 0
+	totalTagCommits := 0
+	for _, result := range results {
+		if len(result.TagCommits) > 0 {
+			tagCommitCount++
+			totalTagCommits += len(result.TagCommits)
+		}
+	}
+
+	if totalPRs > 0 {
+		tagCommitPercentage := float64(tagCommitCount) / float64(totalPRs) * 100
+		fmt.Printf("PRs with Tag Commits: %d/%d (%.1f%%)\n", tagCommitCount, totalPRs, tagCommitPercentage)
+		if totalTagCommits > 0 {
+			avgTagCommitsPerPR := float64(totalTagCommits) / float64(tagCommitCount)
+			fmt.Printf("Total Tag Commits: %d (avg %.1f per PR with tag commits)\n", totalTagCommits, avgTagCommitsPerPR)
+		}
 	}
 }

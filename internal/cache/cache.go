@@ -65,6 +65,16 @@ func (b *CacheKeyBuilder) PRsListKey(owner, repo string, startDate, endDate time
 	return b.buildKey("prs_list", owner, repo, start, end)
 }
 
+func (b *CacheKeyBuilder) CommitsListKey(owner, repo string, startDate, endDate time.Time) string {
+	start := startDate.Format("2006-01-02")
+	end := endDate.Format("2006-01-02")
+	return b.buildKey("commits_list", owner, repo, start, end)
+}
+
+func (b *CacheKeyBuilder) CommitKey(owner, repo, sha string) string {
+	return b.buildKey("commit", owner, repo, sha)
+}
+
 func (b *CacheKeyBuilder) ReleaseKey(projectID, region, releaseName string) string {
 	return b.buildKey("release", projectID, region, releaseName)
 }
